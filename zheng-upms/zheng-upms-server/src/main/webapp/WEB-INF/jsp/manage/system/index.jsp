@@ -13,12 +13,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>系统管理</title>
-	<link href="${basePath}/resources/zheng-ui/plugins/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet"/>
-	<link href="${basePath}/resources/zheng-ui/plugins/material-design-iconic-font-2.2.0/css/material-design-iconic-font.min.css" rel="stylesheet"/>
-	<link href="${basePath}/resources/zheng-ui/plugins/bootstrap-table-1.11.0/bootstrap-table.min.css" rel="stylesheet"/>
-	<link href="${basePath}/resources/zheng-ui/plugins/waves-0.7.5/waves.min.css" rel="stylesheet"/>
-	<link href="${basePath}/resources/zheng-ui/plugins/jquery-confirm/jquery-confirm.min.css" rel="stylesheet"/>
-	<link href="${basePath}/resources/zheng-ui/css/common.css" rel="stylesheet"/>
+	<jsp:include page="/resources/inc/head.jsp" flush="true"/>
 </head>
 <body>
 <div id="main">
@@ -29,44 +24,10 @@
 	</div>
 	<table id="table"></table>
 </div>
-<!-- 新增 -->
-<div id="createDialog" class="crudDialog" hidden>
-	<form>
-		<div class="form-group">
-			<label for="input1">标题</label>
-			<input id="input1" type="text" class="form-control">
-		</div>
-		<div class="form-group">
-			<label for="input2">名称</label>
-			<input id="input2" type="text" class="form-control">
-		</div>
-		<div class="form-group">
-			<label for="input3">根目录</label>
-			<input id="input3" type="text" class="form-control">
-		</div>
-		<div class="form-group">
-			<label for="input4">图标</label>
-			<input id="input4" type="text" class="form-control">
-		</div>
-	</form>
-</div>
-<script src="${basePath}/resources/zheng-ui/plugins/jquery.1.12.4.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/plugins/bootstrap-3.3.0/js/bootstrap.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/plugins/bootstrap-table-1.11.0/bootstrap-table.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/plugins/bootstrap-table-1.11.0/locale/bootstrap-table-zh-CN.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/plugins/waves-0.7.5/waves.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/plugins/jquery-confirm/jquery-confirm.min.js"></script>
-<script src="${basePath}/resources/zheng-ui/js/common.js"></script>
+<jsp:include page="/resources/inc/footer.jsp" flush="true"/>
 <script>
 var $table = $('#table');
 $(function() {
-	$(document).on('focus', 'input[type="text"]', function() {
-		$(this).parent().find('label').addClass('active');
-	}).on('blur', 'input[type="text"]', function() {
-		if ($(this).val() == '') {
-			$(this).parent().find('label').removeClass('active');
-		}
-	});
 	// bootstrap table初始化
 	$table.bootstrapTable({
 		url: '${basePath}/manage/system/list',
@@ -90,7 +51,7 @@ $(function() {
 		maintainSelected: true,
 		toolbar: '#toolbar',
 		columns: [
-			{field: 'state', checkbox: true},
+			{field: 'ck', checkbox: true},
 			{field: 'systemId', title: '编号', sortable: true, align: 'center'},
 			{field: 'icon', title: '图标', sortable: true, align: 'center', formatter: 'iconFormatter'},
             {field: 'title', title: '系统标题'},
@@ -99,9 +60,6 @@ $(function() {
 			{field: 'status', title: '状态', sortable: true, align: 'center', formatter: 'statusFormatter'},
 			{field: 'action', title: '操作', align: 'center', formatter: 'actionFormatter', events: 'actionEvents', clickToSelect: false}
 		]
-	}).on('all.bs.table', function (e, name, args) {
-		$('[data-toggle="tooltip"]').tooltip();
-		$('[data-toggle="popover"]').popover();
 	});
 });
 // 格式化操作按钮
@@ -120,38 +78,29 @@ function statusFormatter(value, row, index) {
 	if (value == 1) {
 		return '<span class="label label-success">正常</span>';
 	} else {
-		return '<span class="label label-danger">锁定</span>';
+		return '<span class="label label-default">锁定</span>';
 	}
 }
 // 新增
+var createDialog;
 function createAction() {
-	$.confirm({
-		type: 'dark',
+	createDialog = $.dialog({
 		animationSpeed: 300,
 		title: '新增系统',
-		content: $('#createDialog').html(),
-		buttons: {
-			confirm: {
-				text: '确认',
-				btnClass: 'waves-effect waves-button',
-				action: function () {
-					$.alert('确认');
-				}
-			},
-			cancel: {
-				text: '取消',
-				btnClass: 'waves-effect waves-button'
-			}
+		content: 'url:${basePath}/manage/system/create',
+		onContentReady: function () {
+			initMaterialInput();
 		}
 	});
 }
 // 编辑
+var updateDialog;
 function updateAction() {
 	var rows = $table.bootstrapTable('getSelections');
-	if (rows.length == 0) {
+	if (rows.length != 1) {
 		$.confirm({
 			title: false,
-			content: '请至少选择一条记录！',
+			content: '请选择一条记录！',
 			autoClose: 'cancel|3000',
 			backgroundDismiss: true,
 			buttons: {
@@ -162,28 +111,18 @@ function updateAction() {
 			}
 		});
 	} else {
-		$.confirm({
-			type: 'blue',
+		updateDialog = $.dialog({
 			animationSpeed: 300,
 			title: '编辑系统',
-			content: $('#createDialog').html(),
-			buttons: {
-				confirm: {
-					text: '确认',
-					btnClass: 'waves-effect waves-button',
-					action: function () {
-						$.alert('确认');
-					}
-				},
-				cancel: {
-					text: '取消',
-					btnClass: 'waves-effect waves-button'
-				}
+			content: 'url:${basePath}/manage/system/update/' + rows[0].systemId,
+			onContentReady: function () {
+				initMaterialInput();
 			}
 		});
 	}
 }
 // 删除
+var deleteDialog;
 function deleteAction() {
 	var rows = $table.bootstrapTable('getSelections');
 	if (rows.length == 0) {
@@ -200,7 +139,7 @@ function deleteAction() {
 			}
 		});
 	} else {
-		$.confirm({
+		deleteDialog = $.confirm({
 			type: 'red',
 			animationSpeed: 300,
 			title: false,
@@ -214,7 +153,63 @@ function deleteAction() {
 						for (var i in rows) {
 							ids.push(rows[i].systemId);
 						}
-						$.alert('删除：id=' + ids.join("-"));
+						$.ajax({
+							type: 'get',
+							url: '${basePath}/manage/system/delete/' + ids.join("-"),
+							success: function(result) {
+								if (result.code != 1) {
+									if (result.data instanceof Array) {
+										$.each(result.data, function(index, value) {
+											$.confirm({
+												theme: 'dark',
+												animation: 'rotateX',
+												closeAnimation: 'rotateX',
+												title: false,
+												content: value.errorMsg,
+												buttons: {
+													confirm: {
+														text: '确认',
+														btnClass: 'waves-effect waves-button waves-light'
+													}
+												}
+											});
+										});
+									} else {
+										$.confirm({
+											theme: 'dark',
+											animation: 'rotateX',
+											closeAnimation: 'rotateX',
+											title: false,
+											content: result.data.errorMsg,
+											buttons: {
+												confirm: {
+													text: '确认',
+													btnClass: 'waves-effect waves-button waves-light'
+												}
+											}
+										});
+									}
+								} else {
+									deleteDialog.close();
+									$table.bootstrapTable('refresh');
+								}
+							},
+							error: function(XMLHttpRequest, textStatus, errorThrown) {
+								$.confirm({
+									theme: 'dark',
+									animation: 'rotateX',
+									closeAnimation: 'rotateX',
+									title: false,
+									content: textStatus,
+									buttons: {
+										confirm: {
+											text: '确认',
+											btnClass: 'waves-effect waves-button waves-light'
+										}
+									}
+								});
+							}
+						});
 					}
 				},
 				cancel: {

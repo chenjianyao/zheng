@@ -132,7 +132,7 @@
 				<a class="waves-effect" href="javascript:Tab.addTab('首页', 'home');"><i class="zmdi zmdi-home"></i> 首页</a>
 			</li>
 			<c:forEach var="upmsPermission" items="${upmsPermissions}" varStatus="status">
-				<c:if test="${upmsPermission.pid == null}">
+				<c:if test="${upmsPermission.pid == 0}">
 				<li class="sub-menu system_menus system_${upmsPermission.systemId} ${status.index}" <c:if test="${upmsPermission.systemId != 1}">style="display:none;"</c:if>>
 					<a class="waves-effect" href="javascript:;"><i class="${upmsPermission.icon}"></i> ${upmsPermission.name}</a>
 					<ul>
@@ -169,7 +169,7 @@
 		<div class="content_main">
 			<div id="iframe_home" class="iframe cur">
 				<p><h4>通用用户权限管理系统</h4></p>
-				<p><b>演示地址</b>：<a href="http://www.zhangshuzheng.cn/upms" target="_blank">http://www.zhangshuzheng.cn/upms</a></p>
+				<p><b>演示地址</b>：<a href="http://www.zhangshuzheng.cn/zhengAdmin" target="_blank">http://www.zhangshuzheng.cn/zhengAdmin</a></p>
 				<p><b>系统简介</b>：本系统是基于RBAC授权和基于用户授权的细粒度权限控制通用平台，并提供单点登录、会话管理和日志管理。接入的系统可自由定义组织、角色、权限、资源等。</p><br/>
 				<p><h4>系统功能概述：</h4></p>
 				<p><b>系统组织管理</b>：系统和组织增加、删除、修改、查询功能。</p>

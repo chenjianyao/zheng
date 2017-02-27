@@ -3,7 +3,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/shuzheng/zheng/pulls)
 [![GitHub forks](https://img.shields.io/github/forks/shuzheng/zheng.svg?style=social&label=Fork)](https://github.com/shuzheng/zheng)
 
-交流QQ群：133107819 (群内含各种工具和文档下载)
+交流QQ群：133107819🈵、284280411♨️(群内含各种工具和文档下载)![](project-bootstrap/face.png)
 
 ## 前言
 
@@ -20,12 +20,14 @@ zheng
 ├── zheng-common -- SSM框架公共模块
 ├── zheng-ui -- 后台管理系统UI模板（基于bootstrap实现的响应式Material Design风格的通用后台管理系统模板）
 ├── zheng-upms -- 用户权限管理系统（网关）
+|    ├── zheng-upms-common -- upms系统公共模块
 |    ├── zheng-upms-dao -- MyBatisGenerator代码生成模块，无需开发
 |    ├── zheng-upms-client -- 集成upms依赖包，提供单点认证、授权、会话管理
 |    ├── zheng-upms-rpc-api -- rpc接口包
 |    ├── zheng-upms-rpc-service -- rpc服务提供者
 |    └── zheng-upms-server -- 系统及SSO服务端[端口:1111]
 ├── zheng-cms -- 内容管理系统
+|    ├── zheng-cms-common -- cms系统公共模块
 |    ├── zheng-cms-dao -- MyBatisGenerator代码生成模块，无需开发
 |    ├── zheng-cms-rpc-api -- rpc接口包
 |    ├── zheng-cms-rpc-service -- rpc服务提供者
@@ -49,10 +51,11 @@ zheng
 |    |    ├── zheng-wechat-mp-service -- 业务逻辑
 |    |    └── zheng-wechat-mp-admin -- 后台管理[端口:5551]
 |    └── zheng-ucenter-app -- 微信小程序后台
-├── zheng-api -- 暴露API网关系统
-|    ├── zheng-api-sdk -- 开发工具包
-|    ├── zheng-api-doc -- 接口文档项目
-|    └── zheng-api-example -- 演示示例[端口:6661]
+├── zheng-api -- API接口总线系统
+|    ├── zheng-api-common -- api系统公共模块
+|    ├── zheng-api-rpc-api -- rpc接口包
+|    ├── zheng-api-rpc-service -- rpc服务提供者
+|    └── zheng-api-server -- api系统服务端[端口:6666]
 ├── zheng-shop -- 电子商务系统
 ├── zheng-im -- 即时通讯系统
 ├── zheng-oa -- 办公自动化系统
@@ -67,25 +70,27 @@ zheng
 #### 后端技术:
 - Spring Framework
 - SpringMVC: MVC框架
-- Spring secutity|Shiro: 安全框架
+- Spring secutity|Apache Shiro: 安全框架
 - Spring session: 分布式Session管理
 - MyBatis: ORM框架
 - MyBatis Generator: 代码生成
 - Druid: 数据库连接池
+- FluentValidator： 校验框架 [https://github.com/neoremind/fluent-validator](https://github.com/neoremind/fluent-validator "FluentValidator")
 - Jsp|Velocity|Thymeleaf: 模板引擎
-- ZooKeeper: 协调服务
+- ZooKeeper: 分布式协调服务
 - Dubbo: 分布式服务框架
 - TBSchedule|elastic-job: 分布式调度框架
 - Redis: 分布式缓存数据库
-- Quartz: 作业调度框架
-- Ehcache: 缓存框架
-- ActiveMQ: 消息队列
 - Solr|Elasticsearch: 分布式全文搜索引擎
+- Quartz: 作业调度框架
+- Ehcache: 进程内缓存框架
+- ActiveMQ: 消息队列
+- JStorm: 实时流式计算框架
 - FastDFS: 分布式文件系统
 - Log4J: 日志管理
-- Swagger2: 接口文档
+- Swagger2: 接口测试框架
 - sequence: 分布式高效ID生产 [http://git.oschina.net/yu120/sequence](http://git.oschina.net/yu120/sequence "sequence")
-- AliOSS|Qiniu: 云存储
+- AliOSS|Qiniu|QcloudCOS: 云存储
 - Protobuf|json: 数据传输 
 - Jenkins: 持续集成工具
 - Maven|Gradle: 项目构建管理
@@ -93,6 +98,12 @@ zheng
 #### 前端技术:
 - jQuery
 - Bootstrap
+- Bootstrap-table
+- Font-awesome
+- Waves
+- zTree
+- Select2
+- jquery-confirm
 - jQuery EasyUI
 - AngularJs
 - zhengAdmin [基于bootstrap实现的响应式Material Design风格的通用后台管理系统](https://github.com/shuzheng/zhengAdmin "zhengAdmin")
@@ -139,7 +150,7 @@ Spring+SpringMVC+Mybatis框架集成公共模块，包括公共配置、MybatisG
 
 > zheng-api
 
-暴露API网关系统，对外暴露统一规范的接口，包括各个子系统的交互接口、对外开放接口、开发加密接口、接口文档等服务，示例图：
+接口总线系统，对外暴露统一规范的接口，包括各个子系统的交互接口、对外开放接口、开发加密接口、接口文档等服务，示例图：
 
 ![API网关](project-bootstrap/zheng-api.png)
 
@@ -239,7 +250,7 @@ Spring+SpringMVC+Mybatis框架集成公共模块，包括公共配置、MybatisG
 
 ### 编译流程
 
-zheng-ui、zheng-common => zheng-oss、zheng-api => zheng-upms => 其他
+zheng-ui、zheng-common => zheng-upms => 其他
 
 ### 启动顺序
 
@@ -247,7 +258,7 @@ zheng-ui、zheng-common => zheng-oss、zheng-api => zheng-upms => 其他
 
 - 修改各dao模块和rpc-service模块的redis.properties、jdbc.properties、generator.properties数据库连接等配置信息，其中master.redis.password、master.jdbc.password、slave.jdbc.password、generator.jdbc.password密码值使用了AES加密，请使用com.zheng.common.util.AESUtil工具类修改这些值
 
-- 启动 zheng-upms-rpc-service => zheng-upms-server => zheng-xxx-rpc-service => zheng-xxx-webapp
+- 启动 zheng-upms-rpc-service(运行ZhengUpmsRpcServiceApplication#main方法启动) => zheng-upms-server(jetty) => zheng-xxx-rpc-service(main方法) => zheng-xxx-webapp(jetty)
 
 - 访问 [统一后台地址 http://upms.zhangshuzheng.cn:1111/ ](http://upms.zhangshuzheng.cn:1111/ "统一后台地址")，默认帐号密码：admin/123456
 
@@ -262,6 +273,7 @@ zheng-ui、zheng-common => zheng-oss、zheng-api => zheng-upms => 其他
     - 生成的model和example均已实现Serializable接口，支持分布式
     - 生成的mapper.xml的selectByExample方法自动包含分页参数offset和limit
     - 已包含抽象类BaseServiceImpl，只需要继承抽象类并传入泛型参数，即可默认实现mapper接口所有方法，特殊需求直接扩展即可
+    - BaseServiceImpl方法根据读写操作自动切换主从数据源，继承的扩展接口，可手动通过`DynamicDataSource.setDataSource(DataSourceEnum.XXX.getName())`指定数据源
 
 - 启动流程：优先rcp-service服务提供者，再启动其他webapp
 

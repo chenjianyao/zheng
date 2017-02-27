@@ -14,9 +14,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.session.Session;
-import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,16 +60,13 @@ public class SSOFilter implements Filter {
 
         // 分配子系统登录sessionId，首次获取后缓存到cookie，防止session丢失
         String clientSessionId = CookieUtil.getCookie(request, ZHENG_UPMS_CLIENT_SESSION_ID);
-        if (StringUtils.isEmpty(clientSessionId)) {
+        if (StringUtils.isBlank(clientSessionId)) {
             clientSessionId = request.getSession().getId();
-//            Subject subject = SecurityUtils.getSubject();
-//            Session session = subject.getSession();
-//            clientSessionId = session.getId();
             CookieUtil.setCookie(response, ZHENG_UPMS_CLIENT_SESSION_ID, clientSessionId);
         }
 
         // 判断局部会话是否登录
-        if (null != clientSessionId && !StringUtils.isEmpty(RedisUtil.get(ZHENG_UPMS_CLIENT_SESSION_ID + "_" + clientSessionId))) {
+        if (null != clientSessionId && !StringUtils.isBlank(RedisUtil.get(ZHENG_UPMS_CLIENT_SESSION_ID + "_" + clientSessionId))) {
             // 移除url中的token参数
             if (null != request.getParameter("token")) {
                 String backUrl = RequestParameterUtil.getParameterWithOutToken(request);
@@ -89,7 +83,7 @@ public class SSOFilter implements Filter {
             // 判断是否有认证中心token
             String token = request.getParameter("token");
             // 已拿到token
-            if (!StringUtils.isEmpty(token)) {
+            if (!StringUtils.isBlank(token)) {
                 // HttpPost去校验token
                 try {
                     HttpClient httpclient = new DefaultHttpClient();
@@ -108,7 +102,7 @@ public class SSOFilter implements Filter {
                             RedisUtil.set(ZHENG_UPMS_CLIENT_SESSION_ID + "_" + clientSessionId, token);
                             // 保存token对应的局部会话sessionId，方便退出登录操作
                             RedisUtil.getJedis().sadd(ZHENG_UPMS_CLIENT_SESSION_IDS + "_" + token, clientSessionId);
-                            _log.info("当前token={}，对应的注册系统个数：{}个", token, RedisUtil.getJedis().scard(ZHENG_UPMS_CLIENT_SESSION_IDS + "_" + token));
+                            _log.debug("当前token={}，对应的注册系统个数：{}个", token, RedisUtil.getJedis().scard(ZHENG_UPMS_CLIENT_SESSION_IDS + "_" + token));
                             // 移除url中的token参数
                             String backUrl = RequestParameterUtil.getParameterWithOutToken(request);
                             // 返回请求资源
@@ -125,12 +119,12 @@ public class SSOFilter implements Filter {
             sso_server_url.append("/sso/index").append("?").append(SYSTEM_NAME).append("=").append(filterConfig.getInitParameter(SYSTEM_NAME));
             StringBuffer backurl = request.getRequestURL();
             String queryString = request.getQueryString();
-            if (!StringUtils.isEmpty(queryString)) {
+            if (!StringUtils.isBlank(queryString)) {
                 backurl.append("?").append(queryString);
             }
             sso_server_url.append("&").append("backurl").append("=").append(URLEncoder.encode(backurl.toString(), "utf-8"));
 
-            _log.info("未登录，跳转认证中心:{}", sso_server_url);
+            _log.debug("未登录，跳转认证中心:{}", sso_server_url);
             response.sendRedirect(sso_server_url.toString());
         }
 

@@ -1,19 +1,24 @@
 package com.zheng.upms.server.controller.manage;
 
+import com.baidu.unbiz.fluentvalidator.ComplexResult;
+import com.baidu.unbiz.fluentvalidator.FluentValidator;
+import com.baidu.unbiz.fluentvalidator.ResultCollectors;
 import com.zheng.common.base.BaseController;
+import com.zheng.common.validator.LengthValidator;
+import com.zheng.upms.common.constant.UpmsResult;
+import com.zheng.upms.common.constant.UpmsResultConstant;
 import com.zheng.upms.dao.model.UpmsOrganization;
 import com.zheng.upms.dao.model.UpmsOrganizationExample;
-import com.zheng.upms.dao.model.UpmsSystem;
 import com.zheng.upms.rpc.api.UpmsOrganizationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -43,18 +48,17 @@ public class UpmsOrganizationController extends BaseController {
 
     @ApiOperation(value = "组织列表")
     @RequiresPermissions("upms:organization:read")
-    @RequestMapping("/list")
+    @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public Object list(
             @RequestParam(required = false, defaultValue = "0", value = "offset") int offset,
             @RequestParam(required = false, defaultValue = "10", value = "limit") int limit,
             @RequestParam(required = false, value = "sort") String sort,
             @RequestParam(required = false, value = "order") String order) {
-        // 数据列表
         UpmsOrganizationExample upmsOrganizationExample = new UpmsOrganizationExample();
         upmsOrganizationExample.setOffset(offset);
         upmsOrganizationExample.setLimit(limit);
-        if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
+        if (!StringUtils.isBlank(sort) && !StringUtils.isBlank(order)) {
             upmsOrganizationExample.setOrderByClause(sort + " " + order);
         }
         List<UpmsOrganization> rows = upmsOrganizationService.selectByExample(upmsOrganizationExample);
@@ -67,34 +71,40 @@ public class UpmsOrganizationController extends BaseController {
 
     @ApiOperation(value = "新增组织")
     @RequiresPermissions("upms:organization:create")
-    @RequestMapping(value = "/add", method = RequestMethod.GET)
-    public String add() {
-        return "/manage/organization/add";
+    @RequestMapping(value = "/create", method = RequestMethod.GET)
+    public String create() {
+        return "/manage/organization/create";
     }
 
     @ApiOperation(value = "新增组织")
-    @RequiresPermissions("cms:organization:create")
-    @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public String add(UpmsOrganization upmsOrganization, ModelMap modelMap) {
+    @RequiresPermissions("upms:organization:create")
+    @ResponseBody
+    @RequestMapping(value = "/create", method = RequestMethod.POST)
+    public Object create(UpmsOrganization upmsOrganization) {
+        ComplexResult result = FluentValidator.checkAll()
+                .on(upmsOrganization.getName(), new LengthValidator(1, 20, "名称"))
+                .doValidate()
+                .result(ResultCollectors.toComplex());
+        if (!result.isSuccess()) {
+            return new UpmsResult(UpmsResultConstant.INVALID_LENGTH, result.getErrors());
+        }
         long time = System.currentTimeMillis();
         upmsOrganization.setCtime(time);
         int count = upmsOrganizationService.insertSelective(upmsOrganization);
-        modelMap.put("count", count);
-        _log.info("新增记录id为：{}", upmsOrganization.getOrganizationId());
-        return "redirect:/manage/organization/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
     @ApiOperation(value = "删除组织")
-    @RequiresPermissions("cms:organization:delete")
+    @RequiresPermissions("upms:organization:delete")
     @RequestMapping(value = "/delete/{ids}",method = RequestMethod.GET)
-    public String delete(@PathVariable("ids") String ids, ModelMap modelMap) {
+    @ResponseBody
+    public Object delete(@PathVariable("ids") String ids) {
         int count = upmsOrganizationService.deleteByPrimaryKeys(ids);
-        modelMap.put("count", count);
-        return "redirect:/manage/organization/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
     @ApiOperation(value = "修改组织")
-    @RequiresPermissions("cms:organization:update")
+    @RequiresPermissions("upms:organization:update")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.GET)
     public String update(@PathVariable("id") int id, ModelMap modelMap) {
         UpmsOrganization organization = upmsOrganizationService.selectByPrimaryKey(id);
@@ -103,13 +113,20 @@ public class UpmsOrganizationController extends BaseController {
     }
 
     @ApiOperation(value = "修改组织")
-    @RequiresPermissions("cms:organization:update")
+    @RequiresPermissions("upms:organization:update")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.POST)
-    public String update(@PathVariable("id") int id, UpmsOrganization upmsOrganization, ModelMap modelMap) {
+    @ResponseBody
+    public Object update(@PathVariable("id") int id, UpmsOrganization upmsOrganization) {
+        ComplexResult result = FluentValidator.checkAll()
+                .on(upmsOrganization.getName(), new LengthValidator(1, 20, "名称"))
+                .doValidate()
+                .result(ResultCollectors.toComplex());
+        if (!result.isSuccess()) {
+            return new UpmsResult(UpmsResultConstant.INVALID_LENGTH, result.getErrors());
+        }
+        upmsOrganization.setOrganizationId(id);
         int count = upmsOrganizationService.updateByPrimaryKeySelective(upmsOrganization);
-        modelMap.put("count", count);
-        modelMap.put("id", id);
-        return "redirect:/manage/organization/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
 }

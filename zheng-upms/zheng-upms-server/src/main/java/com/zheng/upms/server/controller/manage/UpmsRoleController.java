@@ -1,20 +1,33 @@
 package com.zheng.upms.server.controller.manage;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.baidu.unbiz.fluentvalidator.ComplexResult;
+import com.baidu.unbiz.fluentvalidator.FluentValidator;
+import com.baidu.unbiz.fluentvalidator.ResultCollectors;
 import com.zheng.common.base.BaseController;
+import com.zheng.common.validator.LengthValidator;
+import com.zheng.upms.common.constant.UpmsResult;
+import com.zheng.upms.common.constant.UpmsResultConstant;
 import com.zheng.upms.dao.model.UpmsRole;
 import com.zheng.upms.dao.model.UpmsRoleExample;
+import com.zheng.upms.dao.model.UpmsRolePermission;
+import com.zheng.upms.dao.model.UpmsRolePermissionExample;
+import com.zheng.upms.rpc.api.UpmsRolePermissionService;
 import com.zheng.upms.rpc.api.UpmsRoleService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +46,9 @@ public class UpmsRoleController extends BaseController {
     @Autowired
     private UpmsRoleService upmsRoleService;
 
+    @Autowired
+    private UpmsRolePermissionService upmsRolePermissionService;
+
     @ApiOperation(value = "角色首页")
     @RequiresPermissions("upms:role:read")
     @RequestMapping(value = "/index", method = RequestMethod.GET)
@@ -40,20 +56,55 @@ public class UpmsRoleController extends BaseController {
         return "/manage/role/index";
     }
 
+    @ApiOperation(value = "角色权限")
+    @RequiresPermissions("upms:role:permission")
+    @RequestMapping(value = "/permission/{id}", method = RequestMethod.GET)
+    public String permission(@PathVariable("id") int id, ModelMap modelMap) {
+        UpmsRole role = upmsRoleService.selectByPrimaryKey(id);
+        modelMap.put("role", role);
+        return "/manage/role/permission";
+    }
+
+    @ApiOperation(value = "角色权限")
+    @RequiresPermissions("upms:role:permission")
+    @RequestMapping(value = "/permission/{id}", method = RequestMethod.POST)
+    @ResponseBody
+    public Object permission(@PathVariable("id") int id, HttpServletRequest request) {
+        JSONArray datas = JSONArray.parseArray(request.getParameter("datas"));
+        List<Integer> deleteIds = new ArrayList<>();
+        for (int i = 0; i < datas.size(); i ++) {
+            JSONObject json = datas.getJSONObject(i);
+            if (!json.getBoolean("checked")) {
+                deleteIds.add(json.getIntValue("id"));
+            } else {
+                // 加权限
+                UpmsRolePermission upmsRolePermission = new UpmsRolePermission();
+                upmsRolePermission.setRoleId(id);
+                upmsRolePermission.setPermissionId(json.getIntValue("id"));
+                upmsRolePermissionService.insertSelective(upmsRolePermission);
+            }
+        }
+        // 减权限
+        UpmsRolePermissionExample upmsRolePermissionExample = new UpmsRolePermissionExample();
+        upmsRolePermissionExample.createCriteria()
+            .andPermissionIdIn(deleteIds);
+        upmsRolePermissionService.deleteByExample(upmsRolePermissionExample);
+        return new UpmsResult(UpmsResultConstant.SUCCESS, datas.size());
+    }
+
     @ApiOperation(value = "角色列表")
     @RequiresPermissions("upms:role:read")
-    @RequestMapping("/list")
+    @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
     public Object list(
             @RequestParam(required = false, defaultValue = "0", value = "offset") int offset,
             @RequestParam(required = false, defaultValue = "10", value = "limit") int limit,
             @RequestParam(required = false, value = "sort") String sort,
             @RequestParam(required = false, value = "order") String order) {
-        // 数据列表
         UpmsRoleExample upmsRoleExample = new UpmsRoleExample();
         upmsRoleExample.setOffset(offset);
         upmsRoleExample.setLimit(limit);
-        if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
+        if (!StringUtils.isBlank(sort) && !StringUtils.isBlank(order)) {
             upmsRoleExample.setOrderByClause(sort + " " + order);
         }
         List<UpmsRole> rows = upmsRoleService.selectByExample(upmsRoleExample);
@@ -66,35 +117,42 @@ public class UpmsRoleController extends BaseController {
 
     @ApiOperation(value = "新增角色")
     @RequiresPermissions("upms:role:create")
-    @RequestMapping(value = "/add", method = RequestMethod.GET)
-    public String add() {
-        return "/manage/role/add";
+    @RequestMapping(value = "/create", method = RequestMethod.GET)
+    public String create() {
+        return "/manage/role/create";
     }
 
     @ApiOperation(value = "新增角色")
-    @RequiresPermissions("cms:role:create")
-    @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public String add(UpmsRole upmsRole, ModelMap modelMap) {
+    @RequiresPermissions("upms:role:create")
+    @ResponseBody
+    @RequestMapping(value = "/create", method = RequestMethod.POST)
+    public Object create(UpmsRole upmsRole) {
+        ComplexResult result = FluentValidator.checkAll()
+                .on(upmsRole.getName(), new LengthValidator(1, 20, "名称"))
+                .on(upmsRole.getTitle(), new LengthValidator(1, 20, "标题"))
+                .doValidate()
+                .result(ResultCollectors.toComplex());
+        if (!result.isSuccess()) {
+            return new UpmsResult(UpmsResultConstant.INVALID_LENGTH, result.getErrors());
+        }
         long time = System.currentTimeMillis();
         upmsRole.setCtime(time);
         upmsRole.setOrders(time);
         int count = upmsRoleService.insertSelective(upmsRole);
-        modelMap.put("count", count);
-        _log.info("新增记录id为：{}", upmsRole.getRoleId());
-        return "redirect:/manage/role/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
     @ApiOperation(value = "删除角色")
-    @RequiresPermissions("cms:role:delete")
+    @RequiresPermissions("upms:role:delete")
     @RequestMapping(value = "/delete/{ids}",method = RequestMethod.GET)
-    public String delete(@PathVariable("ids") String ids, ModelMap modelMap) {
+    @ResponseBody
+    public Object delete(@PathVariable("ids") String ids) {
         int count = upmsRoleService.deleteByPrimaryKeys(ids);
-        modelMap.put("count", count);
-        return "redirect:/manage/role/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
     @ApiOperation(value = "修改角色")
-    @RequiresPermissions("cms:role:update")
+    @RequiresPermissions("upms:role:update")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.GET)
     public String update(@PathVariable("id") int id, ModelMap modelMap) {
         UpmsRole role = upmsRoleService.selectByPrimaryKey(id);
@@ -103,13 +161,21 @@ public class UpmsRoleController extends BaseController {
     }
 
     @ApiOperation(value = "修改角色")
-    @RequiresPermissions("cms:role:update")
+    @RequiresPermissions("upms:role:update")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.POST)
-    public String update(@PathVariable("id") int id, UpmsRole upmsRole, ModelMap modelMap) {
+    @ResponseBody
+    public Object update(@PathVariable("id") int id, UpmsRole upmsRole) {
+        ComplexResult result = FluentValidator.checkAll()
+                .on(upmsRole.getName(), new LengthValidator(1, 20, "名称"))
+                .on(upmsRole.getTitle(), new LengthValidator(1, 20, "标题"))
+                .doValidate()
+                .result(ResultCollectors.toComplex());
+        if (!result.isSuccess()) {
+            return new UpmsResult(UpmsResultConstant.INVALID_LENGTH, result.getErrors());
+        }
+        upmsRole.setRoleId(id);
         int count = upmsRoleService.updateByPrimaryKeySelective(upmsRole);
-        modelMap.put("count", count);
-        modelMap.put("id", id);
-        return "redirect:/manage/role/list";
+        return new UpmsResult(UpmsResultConstant.SUCCESS, count);
     }
 
 }
